@@ -468,16 +468,22 @@ def delete_article(id):
 		#con.row_factory = dict_factory
 		#cur=con.cursor()
 		cur = get_db().cursor()
-		# Execute
-		cur.execute("DELETE FROM articles_v WHERE id = ?", [id])
-	
-		# Commit to DB
-		#mysql.connection.commit()
-		get_db().commit()
-		#Close connection
-		cur.close()
-		#con.close()
-		flash('Article Deleted', 'success')
+		try:
+			# Execute
+			cur.execute("DELETE FROM articles_v WHERE id = ?", [id])
+		
+			# Commit to DB
+			#mysql.connection.commit()
+			get_db().commit()
+			#Close connection
+			cur.close()
+			#con.close()
+			flash('Article Deleted', 'success')
+		except:
+			app.logger.info('Delete ERROR')
+			cur.close()
+			error = 'DELETE ERROR'
+			return render_template('home.html', error=error)			
 	
 		return redirect(url_for('dashboard'))
 
