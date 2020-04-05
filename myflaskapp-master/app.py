@@ -1,4 +1,5 @@
 from flask import Flask, render_template, flash, redirect, url_for, session, request, logging
+from flask import jsonify
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
@@ -324,7 +325,17 @@ def delete_article(id):
 		return render_template('home.html', error=error)			
 	
 	return redirect(url_for('dashboard'))
-
+#for Testing
+@app.route("/dummy")
+def dummy(): 
+    return jsonify({"dummy":"dummy-value"})
+	
+@app.route('/error', methods=['GET','POST'])
+def error():
+	app.logger.info('Delete ERROR')
+	error = 'DELETE ER1ROR'
+	return render_template('home.html', error=error)			
+	
 if __name__ == '__main__':
     app.secret_key='secret123'
     app.run(debug=True)
