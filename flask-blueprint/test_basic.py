@@ -16,7 +16,7 @@ def randomString(stringLength=10):
     """Generate a random string of fixed length """
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(stringLength))
-	
+
 def assertTrue(self,response):
     self.assertNotEqual(response.status_code, 404)
     self.assertFalse(re.search('ERROR',response.get_data(as_text=True)))
@@ -57,16 +57,16 @@ class BasicTests(unittest.TestCase):
 ###############
 #### tests ####
 ###############
-   
+
     def test_main_page(self):
         with app.test_client() as c:
             with c.session_transaction() as session:
                 session['logged_in'] = True
                 session['username'] = 'Test'
-        response = self.app.get('/edit_/1', follow_redirects=True)
+        response = self.app.get('/edit_template/1', follow_redirects=True)
         assertTrue(self,response)
         print(response.data)
-		
+
     def test_register_login(self):
         #with app.app_context():
             #for user in db.query_db('select * from users'):
@@ -86,7 +86,7 @@ class BasicTests(unittest.TestCase):
             # check result from server with expected data
                 assertTrue(self,response)
                 assertTrue(self,request)
-    
+
     def test_main(self):
         with app.test_client() as client:
             # send data as POST form to endpoint
@@ -97,7 +97,7 @@ class BasicTests(unittest.TestCase):
             )
             print(response.data)
             assertTrue(self,response)
-	
+
     def test_add_article(self):
         #app.config['DATABASE']='blue/site/Test.db'
         with app.app_context():
@@ -109,20 +109,20 @@ class BasicTests(unittest.TestCase):
                 session['logged_in'] = True
                 session['username'] = 'Test'
             # send data as POST form to endpoint
-            
+
             for x in range(5):
                 sent = {'title':'test'+str(x),'body':'testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest'}
                 response = c.post('/add_article',data=sent)
             # check result from server with expected data
                 print(response.data)
                 assertTrue(self,response)
-			
+
     def test_edit_article(self):
         #app.config['DATABASE']='blue/site/Test.db'
         with app.app_context():
             articles=db.query_db('select * from articles_v')
         with app.test_client() as c:
-            
+
             with c.session_transaction() as session:
                 session['logged_in'] = True
                 session['username'] = 'Test'
@@ -133,7 +133,7 @@ class BasicTests(unittest.TestCase):
                 response = c.post('/edit_article/'+str(article['id']),data=sent)
             # check result from server with expected data
                 assertTrue(self,response)
-			
+
     def test_open_article(self):
         with app.app_context():
             articles=db.query_db('select * from articles_v')
@@ -178,7 +178,7 @@ class BasicTests(unittest.TestCase):
         data = json.loads(response.get_data(as_text=True))
         self.assertEqual(data['dummy'], "dummy-value")
         assertTrue(self,response)
-		
+
 	#Find ERROR msg
     def test_error(self):
         response = self.app.get("/error")
@@ -186,7 +186,27 @@ class BasicTests(unittest.TestCase):
         app.config['DATABASE']='blue/site/Test.db'
         print(app.config['DATABASE'])
         assertTrue(self,response)
-				
+'''
+def CheckSqliteRowHashCmp(self):
+        """Checks if the row object compares and hashes correctly"""
+        self.con.row_factory = sqlite.Row
+        row_1 = self.con.execute("select 1 as a, 2 as b").fetchone()
+        row_2 = self.con.execute("select 1 as a, 2 as b").fetchone()
+        row_3 = self.con.execute("select 1 as a, 3 as b").fetchone()
+
+        self.assertEqual(row_1, row_1)
+        self.assertEqual(row_1, row_2)
+        self.assertTrue(row_2 != row_3)
+
+        self.assertFalse(row_1 != row_1)
+        self.assertFalse(row_1 != row_2)
+        self.assertFalse(row_2 == row_3)
+
+        self.assertEqual(row_1, row_2)
+        self.assertEqual(hash(row_1), hash(row_2))
+        self.assertNotEqual(row_1, row_3)
+        self.assertNotEqual(hash(row_1), hash(row_3))
+'''				
 if __name__ == "__main__":
     unittest.main()
 

@@ -40,7 +40,7 @@ def is_logged_in(f):
             flash('Unauthorized, Please login', 'danger')
             return redirect(url_for('site.login'))
     return wrap
-	
+
 # Index
 
 @mod.route('/')
@@ -70,21 +70,23 @@ def articles():
 	####
 	# Get articles
 	try:
-		articles =db.query_db("SELECT * FROM articles_v")
+		#articles =db.query_db("SELECT * FROM articles_v")
+		articles=cls.Articles.fetchall().list
 	except:
 		msg = 'No Articles Found'
 		return render_template('articles.html', msg=msg)
-	finally:
-		if articles:
-			return render_template('articles.html', articles=articles)
-		else:
-			msg = 'No Articles Found'
-			return render_template('articles.html', msg=msg)
+
+	if articles:
+		return render_template('articles.html', articles=articles)
+	else:
+		msg = 'No Articles Found'
+		return render_template('articles.html', msg=msg)
 #Single Article
 @mod.route('/article/<string:id>/')
 def article(id):
 	try:
-		article =db.query_db("SELECT * FROM articles_v WHERE id = ?",[id],one=True)
+		#article =db.query_db("SELECT * FROM articles_v WHERE id = ?",[id],one=True)
+		article=cls.Articles.fetchone(id=id,where='id')
 	except:
 		msg = 'No Articles Found'
 		return render_template('articles.html', msg=msg)
@@ -136,16 +138,18 @@ def logout():
 @is_logged_in
 def dashboard():
 	try:
-		articles =db.query_db("SELECT * FROM articles_v")
+		#articles =db.query_db("SELECT * FROM articles_v")
+		articles=cls.Articles.fetchall().list
+		#test=cls.Articles.fetchone(id='3',where='id')
 	except:
 		msg = 'No Articles Found'
 		return render_template('dashboard.html', msg=msg)
-	finally:
-		if articles:
-			return render_template('dashboard.html', articles=articles)
-		else:
-			msg = 'No Articles Found'
-			return render_template('dashboard.html', msg=msg)
+
+	if articles:
+		return render_template('dashboard.html', articles=articles)
+	else:
+		msg = 'No Articles Found'
+		return render_template('dashboard.html', msg=msg)
 
 # Add Article
 @mod.route('/add_article', methods=['GET', 'POST'])
@@ -157,8 +161,11 @@ def add_article():
 		title = form.title.data
 		body = form.body.data
 		try:
-			db.query_db("INSERT INTO articles_v(title, body, author) VALUES(?, ?, ?)",(title, body, session['username']))
-			db.get_db().commit()
+			#db.query_db("INSERT INTO articles_v(title, body, author) VALUES(?, ?, ?)",(title, body, session['username']))
+			#article=cls.Articles()
+			#article.add('title, body, author',"'{}','{}','{}'".format(title,body,session['username']))
+			article=cls.Articles().add('title, body, author',"'{}','{}','{}'".format(title,body,session['username']))
+			#db.get_db().commit()
 			flash('Article Created', 'success')
 		except:
 			app.logger.info('CREATE ERROR')
@@ -169,54 +176,19 @@ def add_article():
 
 	return render_template('add_article.html', form=form)
 
-# Edit Template
-@mod.route('/edit_/<string:id>', methods=['GET', 'POST'])
-@is_logged_in
-def edit_(id):
-	#with mod.app_context():
-	try:
-		article=db.query_db("SELECT * FROM template WHERE id = ?", [id],one=True)
-		print(article['name'])
-		form = cls.TemplateForm(request.form)
-
-		# Populate article form fields
-		form.name.data=article['name']
-		form.body.data = article['body']
-		form.param.data = article['param']
-		form.link.data = article['link']
-	except:
-		print('Error')
-		error = 'No Template Found'
-		return render_template('home.html', error=error)
-	if request.method == 'POST' and form.validate():
-		name = request.form['name']
-		body = request.form['body']
-		param = request.form['param']
-		link = request.form['link']
-		app.logger.info(name)
-		try:
-			db.query_db("UPDATE template SET name=?, body=?, param=?, link=? WHERE id=?",(name, body,param,link, id))
-			db.get_db().commit()
-		except:
-			app.logger.info('UPDATE ERROR')
-			error = 'UPDATE ERROR'
-			return render_template('home.html', error=error)
-		flash('Template Updated', 'success')
-		return redirect(url_for('site.index'))
-	return render_template('edit_.html', form=form)
-
 # Edit Article
 @mod.route('/edit_article/<string:id>', methods=['GET', 'POST'])
 @is_logged_in
 def edit_article(id):
 	#with mod.app_context():
 	try:
-		article =db.query_db("SELECT * FROM articles_v WHERE id = ?", [id],one=True)
+		#article =db.query_db("SELECT * FROM articles_v WHERE id = ?", [id],one=True)
+		article=cls.Articles.fetchone(id=id,where='id')
 		form = cls.ArticleForm(request.form)
 
 		# Populate article form fields
-		form.title.data = article['title']
-		form.body.data = article['body']
+		form.title.data = article.title
+		form.body.data = article.body
 	except:
 		print('Error')
 		error = 'No Article Found'
@@ -230,8 +202,9 @@ def edit_article(id):
 		app.logger.info(title)
 		try:
 			# Execute
-			db.query_db("UPDATE articles_v SET title=?, body=? WHERE id=?",(title, body, id))
-			db.get_db().commit()
+			#db.query_db("UPDATE articles_v SET title=?, body=? WHERE id=?",(title, body, id))
+			#db.get_db().commit()
+			article.update(set="title='{}',body='{}'".format(title,body),id=article.id,where='id')
 		except:
 			app.logger.info('UPDATE ERROR')
 			error = 'UPDATE ERROR'
@@ -248,8 +221,13 @@ def delete_article(id):
 	#with mod.app_context():
 	try:
 		# Execute
-		db.query_db("DELETE FROM articles_v WHERE id = ?", [id])
-		db.get_db().commit()
+		#db.query_db("DELETE FROM articles_v WHERE id = ?", [id])
+		#article=cls.Articles()
+
+		#article=cls.Articles.fetchone(id=id,where='id')
+		#article.delete(article.id)
+		article=cls.Articles().delete(id)
+		#db.get_db().commit()
 		flash('Article Deleted', 'success')
 	except:
 		app.logger.info('Delete ERROR')
@@ -257,6 +235,44 @@ def delete_article(id):
 		return render_template('home.html', error=error)
 
 	return redirect(url_for('site.dashboard'))
+
+# Edit Template
+@mod.route('/edit_template/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_(id):
+	#with mod.app_context():
+	try:
+		#article=db.query_db("SELECT * FROM template WHERE id = ?", [id],one=True)
+		template=cls.Templates.fetchone(id=id,where='id')
+		form = cls.TemplateForm(request.form)
+
+		# Populate article form fields
+		form.name.data=template.name
+		form.body.data = template.body
+		form.param.data = template.param
+		form.link.data = template.link
+	except:
+		print('Error')
+		error = 'No Template Found'
+		return render_template('home.html', error=error)
+	if request.method == 'POST' and form.validate():
+		name = request.form['name']
+		body = request.form['body']
+		param = request.form['param']
+		link = request.form['link']
+		app.logger.info(name)
+		try:
+			template.update(set="name='{}',body='{}',param='{}',link='{}'".format(name,body,param,template.name),id=template.id,where='id')
+			#db.query_db("UPDATE template SET name=?, body=?, param=?, link=? WHERE id=?",(name, body,param,link, id))
+			#db.get_db().commit()
+		except:
+			app.logger.info('UPDATE ERROR')
+			error = 'UPDATE ERROR'
+			return render_template('home.html', error=error)
+		flash('Template Updated', 'success')
+		return redirect(url_for('site.index'))
+	return render_template('edit_.html', form=form)
+
 #for Testing
 @mod.route("/dummy")
 def dummy():
@@ -268,6 +284,36 @@ def error():
 	error = 'DELETE ER1ROR'
 	return render_template('home.html', error=error)
 
+@mod.route('/homepage')
+def homepage():
+
+
+	#test1=cls.Articles.fetchall()
+	#test=cls.Articles.fetchone(id='3',where='id')
+
+	#print(test1.__dict__)
+	#print(test.__dict__)
+
+	#test.set_table_select('articles_v','title,id,body,author')
+	#test.table,test.select='articles_v','title,id,body,author';
+	#print('table={}, select={}'.format(test.table,test.select))
+	#test2=cls.Articles.fetchone(id='3',where='id')
+	#print(test.fetchone(id='4',where='id').__dict__)
+	#print('table={}, select={}'.format(test.table,test.select))
+	#print('table={}, select={}'.format(test2.table,test2.select))
+	#print(test.__dict__)
+	#print(test2.__dict__)
+	#test=db.query_db("SELECT id,title,author,body FROM articles_v WHERE id = ?",[3],one=True)
+	#test=cls.Article(db.query_db("SELECT id,title,author,body FROM {} WHERE id = {}".format('articles_v',4),one=True))
+
+	#if test is not None: print(test.__dict__)
+
+
+	#cur.execute("SELECT name, bday FROM employees WHERE empid = ?", (empid,))
+	#self,name, self.bday = cur.fetchone()
+	#print(db.query_db("SELECT id,title,author,body FROM articles_v WHERE id = ?",[3],one=True)['body'])
+	#return render_template('article.html', article=test)
+	return render_template('site/index.html')
 #if __name__ == '__main__':
 #    app.secret_key='secret123'
 #    app.run(debug=True)

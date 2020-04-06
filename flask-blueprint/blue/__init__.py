@@ -10,8 +10,8 @@ from blue.admin.routes import mod
 from blue.site.test import test
 #from blue.site import config
 #app.config['DATABASE']='Test.db'
-#app.config['DATABASE']='blue/site/Test.db'
-app.config['DATABASE']='blue/site/Dev.db'
+app.config['DATABASE']='blue/site/Test.db'
+#app.config['DATABASE']='blue/site/Dev.db'
 app.secret_key='secret123'
 
 app.register_blueprint(site.routes.mod)
