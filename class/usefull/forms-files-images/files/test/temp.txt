@@ -1,0 +1,15 @@
+INSERT INTO limit_dict(limit_czk_value)
+VALUES('Learn MySQL INSERT Statement',1);
+
+ALTER TABLE limit_dict
+ADD COLUMN limit_czk_value INT NOT NULL;
+
+
+UPDATE limit_dict SET limit_czk_value=limit_value/2.7;
+
+str(Sum['summa']))
+
+SELECT sum(cost) as summa FROM costs where year=(Select Year(CURDATE())) and month=(select month(CURDATE())) and title !='кредит';
+
+
+SELECT title,limits FROM costs where year=(Select Year(CURDATE())) and month=(select month(CURDATE())) and title !='кредит';
