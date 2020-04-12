@@ -8,7 +8,7 @@ def homepage():
 '''
 import os
 #from flask_ckeditor import CKEditor, CKEditorField, upload_fail, upload_success
-from flask import Flask, render_template, flash, redirect, url_for, session, request, logging
+from flask import Flask, render_template, flash, redirect, url_for, session, request, logging,render_template_string
 from flask import jsonify
 #from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
@@ -18,7 +18,7 @@ from functools import wraps
 #from __name__ import query_db
 from blue import app
 #from blue.site.database import get_db,query_db,init_db,valid_login,log_the_user_in,register_user
-from blue.site import database as db
+from blue import database as db
 from blue.site import classes as cls
 from blue.config import ROOT_DIR,file_path
 #import config
@@ -27,19 +27,14 @@ mod = Blueprint('site', __name__, template_folder='templates')
 #mod = Flask(__name__)
 
 # Config DB
-#mod.config['DATABASE']='Dev.db'
-#app.config['DATABASE']='blue/site/Test.db'
 
-#app.config['CKEDITOR_EXTRA_PLUGINS'] = ['imagerotate']
-
-#ckeditor = CKEditor(app)
 
 # Check if user logged in
 def is_logged_in(f):
     @wraps(f)
     def wrap(*args, **kwargs):
         if 'logged_in' in session:
-            session['database'] = app.config['DATABASE']
+            session['database'] = app.config['SQLALCHEMY_DATABASE_URI']
             return f(*args, **kwargs)
         else:
             flash('Unauthorized, Please login', 'danger')
@@ -54,27 +49,26 @@ def index():
 
 
 # About
-@mod.route('/about')
-def about():
-    return render_template('about.html')
+#@mod.route('/about')
+@mod.route('/<string:tag>')
+def about(tag):
+	print(tag)
+	#Pages = db.Page().query.filter_by(name="About").first()
+	try:
+		Pages = db.Page().query.filter(db.Page.name.ilike(tag)).first()
+		return render_template_string('{% extends "layout.html" %} {% block body %}'+Pages.body+'{% endblock %}')
+	except:
+		flash('Page not found!', 'danger')
+		return redirect(url_for('site.index'))
+	#print(Pages.text)
+	#return render_template_string('{% extends "layout.html" %} {% block body %}<h1>hello {{ what }}</h1>{% endblock %}', what=Pages.text)
+
+	#return render_template('about.html')
 
 
 # Articles
 @mod.route('/articles')
 def articles():
-	#Easy Querying
-	for title in db.query_db('select * from articles_v'):
-		print (title['title'], 'has the id', title['id'])
-	#a single result:
-	the_username='test1'
-	user = db.query_db('select * from users where name = ?',[the_username], one=True)
-
-	#print(user1)
-	if user is None:
-		print ('No such user')
-	else:
-			print (the_username, 'has the email', user['email'])
-	####
 	# Get articles
 	try:
 
@@ -93,8 +87,6 @@ def articles():
 @mod.route('/article/<string:id>/')
 def article(id):
 	try:
-		#article =db.query_db("SELECT * FROM articles_v WHERE id = ?",[id],one=True)
-		#article=cls.Articles.fetchone(id=id,where='id')
 		article = db.Articles().query.get_or_404(id)
 	except:
 		msg = 'No Articles Found'
@@ -106,25 +98,11 @@ def article(id):
 def register():
     form = cls.RegisterForm(request.form)
     if request.method == 'POST':#and form.validate():
-        #password = sha256_crypt.encrypt(str(form.password.data))
-        #print('test')
-        #db.register_user(request.form['name'], request.form['email'], request.form['username'],password)
-		#db.Users.query.filter_by(username=request.form['username']).first().password
-        #user=db.Users().add(first_name=request.form['name'],email=request.form['email'],username=request.form['username'],password=request.form['password'])
-        #print(user.__dict__)
         try:
             db.db.session.add(db.Users().add(first_name=request.form['name'],email=request.form['email'],username=request.form['username'],password=request.form['password']))
             db.db.session.commit()
         except:
             return render_template('register.html',form=form,error='DB_error')
-
-        #user.first_name=request.form['name']
-        #user.email=request.form['email']
-        #user.username=request.form['username']
-        #user.password=request.form['password']
-        #db.db.session.add(user)
-        #db.db.session.commit()
-        #db.get_db().commit()
         flash('You are now registered and can log in', 'success')
         return redirect(url_for('site.login'))
 
@@ -166,10 +144,7 @@ def logout():
 @is_logged_in
 def dashboard():
 	try:
-		#articles =db.query_db("SELECT * FROM articles_v")
-		#articles=cls.Articles.fetchall().list
 		articles = db.Articles().query.all()
-		#test=cls.Articles.fetchone(id='3',where='id')
 	except:
 		msg = 'No Articles Found'
 		return render_template('dashboard.html', msg=msg)
@@ -288,7 +263,8 @@ def edit_(id):
 	#with mod.app_context():
 	try:
 		#article=db.query_db("SELECT * FROM template WHERE id = ?", [id],one=True)
-		template=cls.Templates.fetchone(id=id,where='id')
+		#template=cls.Templates.fetchone(id=id,where='id')
+		template=db.Templates().query.get(id)
 		form = cls.TemplateForm(request.form)
 
 		# Populate article form fields
@@ -306,8 +282,12 @@ def edit_(id):
 		param = request.form['param']
 		link = request.form['link']
 		app.logger.info(name)
+		db.db.session.add(template.add(name=name,body=body,param=param,link=link))
+		print('YRAAAA')
 		try:
-			template.update(set="name='{}',body='{}',param='{}',link='{}'".format(name,body,param,template.name),id=template.id,where='id')
+			#template.update(set="name='{}',body='{}',param='{}',link='{}'".format(name,body,param,template.name),id=template.id,where='id')
+
+			db.db.session.commit()
 			#db.query_db("UPDATE template SET name=?, body=?, param=?, link=? WHERE id=?",(name, body,param,link, id))
 			#db.get_db().commit()
 		except:

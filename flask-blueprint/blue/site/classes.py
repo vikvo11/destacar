@@ -1,5 +1,5 @@
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from blue.site import database as db
+from blue import database as db
 ###SQLAlchemy
 
 
@@ -24,6 +24,22 @@ class TemplateForm(Form):
     body = TextAreaField('Body')
     param = TextAreaField('Parameters')
     link = StringField('Link')
+'''
+class Uploaded_files():
+   @staticmethod
+    def upd(name,path):
+        try:
+            file = db.File()
+            #self.id, self.title,self.body,self.author = cursor
+            file.name=name
+            file.path=path
+            db.db.session.add(file)
+            db.db.session.commit()
+            return file #'Done'#cls(cursor,list=True)
+        except:
+            print('test_error')
+            return 'Error'
+'''
 
 class init_table():
     """docstring for init_table."""

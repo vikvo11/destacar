@@ -19,7 +19,7 @@ from flask_admin.contrib import sqla, rediscli
 from blue import app
 #from blue.site import database
 from blue.site.database import db
-from blue.site import database
+from blue import database
 from blue.config import ROOT_DIR,file_path
 from passlib.hash import sha256_crypt
 
@@ -31,36 +31,7 @@ mod = Blueprint('admin1', __name__, template_folder='templates',static_folder='f
 # see http://bootswatch.com/3/ for available swatches
 app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 
-#app.config['CKEDITOR_SERVE_LOCAL'] = True
-#app.config['CKEDITOR_HEIGHT'] = 300
-#app.config['CKEDITOR_FILE_UPLOADER'] = 'upload'
-#app.config['CKEDITOR_PKG_TYPE'] = 'full'
-#app.config['CKEDITOR_EXTRA_PLUGINS'] = ['imagerotate']
-#app.config['UPLOADED_PATH'] = file_path#os.path.join(ROOT_DIR, 'static','uploads')
 
-#ckeditor = CKEditor(app)
-# Create dummy secrey key so we can use sessions
-#app.config['SECRET_KEY'] = '123456790'
-
-# Create in-memory database
-#app.config['DATABASE_FILE'] = 'sample_db.sqlite'
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
-#app.config['SQLALCHEMY_ECHO'] = True
-
-#db = SQLAlchemy(app)
-
-# Create directory for file fields to use
-#file_path = op.join(op.dirname(__file__), 'files')
-#root=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-#file_path = op.join(root, 'static','files')
-
-
-#app_dir = op.realpath(os.path.dirname(__file__))
-#database_path = op.join(app_dir, app.config['DATABASE_FILE'])
-
-#file_path=op.dirname(os.path.abspath(app.config['PATH_FILES']))
-#file_path = op.join(app_dir, 'files')
-#print(file_path)
 try:
     os.mkdir(file_path)
 except OSError:
@@ -120,7 +91,7 @@ class CKTextAreaField(fields.TextAreaField):
 # Administrative views
 class PageView(sqla.ModelView):
     form_overrides = {
-        'text': CKTextAreaField
+        'body': CKTextAreaField
     }
     create_template = 'create_page.html'
     edit_template = 'edit_page.html'
@@ -161,12 +132,7 @@ class ImageView(sqla.ModelView):
         name, _ = op.splitext(filename)
         return '%s-thumb123.jpg' % name
 
-	    #return 'test'
-		#return Markup('<img src="%s">' % url_for('static',
-        #                                         filename=form.thumbgen_filename(model.path)))
-        #return Markup('<img src="%s">' % form.thumbgen_filename(model.path))
-    #edit_template='edit_image.html'
-	#tese='test'
+
     column_formatters = {
         'path':_list_thumbnail,
 		#'path':thumb_name
@@ -225,7 +191,8 @@ class UserView1(sqla.ModelView):
     form_extra_fields = {
         'path': form.ImageUploadField('Image',
                                       base_path=file_path,
-                                      thumbnail_size=(100, 100, True))
+                                      thumbnail_size=(100, 100, True),
+                                      url_relative_path='files/')
     }
 
     """
@@ -253,38 +220,16 @@ class UserView1(sqla.ModelView):
 
 @mod.route('/123')
 def index():
-	#print(file_path)
-	#app_dir = op.realpath(os.path.dirname(__file__))
-	#root=op.dirname(sys.modules['__main__'].__file__)
-	#root=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	#file_path = op.join(root, 'static','files')
-	#app.config['PATH_FILES']
-	#print(app_dir)
-	#return "{}".format(app.config['PATH_FILES'])
+
 	database_path = os.path.join(ROOT_DIR, app.config['DATABASE_FILE'])
 	return "{}".format(database_path)
     #return '<a href="/admin/">Click me to get to Admin!</a>'
-'''
-@app.route('/files/<filename>')
-def uploaded_files(filename):
-    path = app.config['UPLOADED_PATH']
-    #print(path)
-    return send_from_directory(path, filename)
 
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    f = request.files.get('upload')
-    extension = f.filename.split('.')[1].lower()
-    if extension not in ['jpg', 'gif', 'png', 'jpeg']:
-        return upload_fail(message='Image only!')
-    f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
-    #url = url_for('uploaded_files', filename=f.filename)
-    url = url_for('static', filename='files/'+f.filename)
-    return upload_success(url=url)
-'''
+#@mod.route('/')
+#def homepage():
+	#return render_template('admin/index.html')
 # Create admin
-admin = Admin(app, 'Example: Forms', template_mode='bootstrap2')
+admin = Admin(app, 'Admin: Forms', template_mode='bootstrap2')
 
 # Add views
 '''
@@ -298,31 +243,15 @@ admin.add_view(FileView(database.File, db.session))
 admin.add_view(ImageView(database.Image, db.session))
 admin.add_view(UserView(database.Users, db.session))
 admin.add_view(ArticlesView(database.Articles, db.session))
+admin.add_view(ArticlesView(database.Templates, db.session))
 admin.add_view(UserView1(database.User1, db.session))
 admin.add_view(PageView(database.Page, db.session))
 #admin.add_view(rediscli.RedisCli(Redis()))
 
 
-#@mod.route('/')
-#def homepage():
-#	return render_template('admin/index.html')
 
 
 
-# Build a sample db on the fly, if one does not exist yet.
-#database_path = os.path.join(ROOT_DIR, app.config['DATABASE_FILE'])
-#if not os.path.exists(database_path):
-#	build_sample_db()
-#	print(database_path)
-#build_sample_db()
+
 if __name__ == '__main__':
 	pass
-	#database_path = os.path.join(ROOT_DIR, app.config['DATABASE_FILE'])
-	#if not os.path.exists(database_path):
-	#	build_sample_db()
-	#pass
-	#print(file_path)
-	#app_dir = op.realpath(os.path.dirname(__file__))
-	#database_path = op.join(app_dir, app.config['DATABASE_FILE'])
-	#if not os.path.exists(database_path):
-		#build_sample_db()
