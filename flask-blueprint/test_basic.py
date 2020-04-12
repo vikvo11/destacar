@@ -136,7 +136,8 @@ class BasicTests(unittest.TestCase):
 
     def test_open_article(self):
         with app.app_context():
-            articles=db.query_db('select * from articles_v')
+            #articles=db.query_db('select * from articles_v')
+            articles = db.Articles().query.all()
             #for article in articles:
                 #print(article['id'])
         with app.test_client() as c:
@@ -148,15 +149,16 @@ class BasicTests(unittest.TestCase):
                 session['username'] = 'Test'
             # send data as POST form to endpoint
             for article in articles:
-                print(article['id'])
+                print(article.id)
                 print('/article/'+str(article['id']))
-                response = self.app.get('/article/'+str(article['id']), follow_redirects=True)
+                response = self.app.get('/article/'+str(article.id), follow_redirects=True)
                 print(response.data)
                 assertTrue(self,response)
 
     def test_delete_article(self):
         with app.app_context():
-            articles=db.query_db('select * from articles_v')
+            #articles=db.query_db('select * from articles_v')
+            articles = db.Articles().query.all()
             #for article in articles:
                 #print(article['id'])
         with app.test_client() as c:
@@ -166,9 +168,9 @@ class BasicTests(unittest.TestCase):
                 session['username'] = 'Test'
             # send data as POST form to endpoint
             for article in articles:
-                print(article['id'])
+                #print(article['id'])
                 #sent = {'title':'EDIT'+str(article['id']),'body':str(article['body'])+'-EDIT'}
-                response = c.post('/delete_article/'+str(article['id']))
+                response = c.post('/delete_article/'+str(article.id))
                 print(response.data)
                 assertTrue(self,response)
 
