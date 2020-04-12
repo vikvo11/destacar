@@ -17,9 +17,13 @@ from flask_admin.form import rules
 from flask_admin.contrib import sqla, rediscli
 
 from blue import app
+#from blue.site import database
+from blue.site.database import db
+from blue.site import database
 from blue.config import ROOT_DIR,file_path
+from passlib.hash import sha256_crypt
 
-
+#from flask_ckeditor import CKEditor, CKEditorField, upload_fail, upload_success
 #app = Flask(__name__, static_folder='files')
 mod = Blueprint('admin1', __name__, template_folder='templates',static_folder='files')
 
@@ -27,15 +31,23 @@ mod = Blueprint('admin1', __name__, template_folder='templates',static_folder='f
 # see http://bootswatch.com/3/ for available swatches
 app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 
+#app.config['CKEDITOR_SERVE_LOCAL'] = True
+#app.config['CKEDITOR_HEIGHT'] = 300
+#app.config['CKEDITOR_FILE_UPLOADER'] = 'upload'
+#app.config['CKEDITOR_PKG_TYPE'] = 'full'
+#app.config['CKEDITOR_EXTRA_PLUGINS'] = ['imagerotate']
+#app.config['UPLOADED_PATH'] = file_path#os.path.join(ROOT_DIR, 'static','uploads')
+
+#ckeditor = CKEditor(app)
 # Create dummy secrey key so we can use sessions
-app.config['SECRET_KEY'] = '123456790'
+#app.config['SECRET_KEY'] = '123456790'
 
 # Create in-memory database
-app.config['DATABASE_FILE'] = 'sample_db.sqlite'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
-app.config['SQLALCHEMY_ECHO'] = True
+#app.config['DATABASE_FILE'] = 'sample_db.sqlite'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
+#app.config['SQLALCHEMY_ECHO'] = True
 
-db = SQLAlchemy(app)
+#db = SQLAlchemy(app)
 
 # Create directory for file fields to use
 #file_path = op.join(op.dirname(__file__), 'files')
@@ -56,58 +68,10 @@ except OSError:
 
 
 # Create models
-class File(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Unicode(64))
-    path = db.Column(db.Unicode(128))
-
-    def __unicode__(self):
-        return self.name
-
-
-class Image(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Unicode(64))
-    path = db.Column(db.Unicode(128))
-    #path1= db.Column(db.Unicode(128))
-
-    def __unicode__(self):
-        return self.name
-
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.Unicode(64))
-    last_name = db.Column(db.Unicode(64))
-    email = db.Column(db.Unicode(128))
-    phone = db.Column(db.Unicode(32))
-    city = db.Column(db.Unicode(128))
-    country = db.Column(db.Unicode(128))
-    notes = db.Column(db.UnicodeText)
-
-class User1(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.Unicode(64))
-    last_name = db.Column(db.Unicode(64))
-    email = db.Column(db.Unicode(128))
-    phone = db.Column(db.Unicode(32))
-    city = db.Column(db.Unicode(128))
-    country = db.Column(db.Unicode(128))
-    path = db.Column(db.Unicode(128))
-    notes = db.Column(db.UnicodeText)
-
-
-class Page(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Unicode(64))
-    text = db.Column(db.UnicodeText)
-
-    def __unicode__(self):
-        return self.name
 
 
 # Delete hooks for models, delete files if models are getting deleted
-@listens_for(File, 'after_delete')
+@listens_for(database.File, 'after_delete')
 def del_file(mapper, connection, target):
     if target.path:
         try:
@@ -117,7 +81,7 @@ def del_file(mapper, connection, target):
             pass
 
 
-@listens_for(Image, 'after_delete')
+@listens_for(database.Image, 'after_delete')
 def del_image(mapper, connection, target):
     if target.path:
         # Delete image
@@ -133,6 +97,11 @@ def del_image(mapper, connection, target):
         except OSError:
             pass
 
+@listens_for(database.Users.password, 'set', retval=True)
+def hash_user_password(target, value, oldvalue, initiator):
+    if value != oldvalue:
+        return sha256_crypt.encrypt(str(value))
+    return value
 
 # define a custom wtforms widget and field.
 # see https://wtforms.readthedocs.io/en/latest/widgets.html#custom-widgets
@@ -152,6 +121,13 @@ class CKTextAreaField(fields.TextAreaField):
 class PageView(sqla.ModelView):
     form_overrides = {
         'text': CKTextAreaField
+    }
+    create_template = 'create_page.html'
+    edit_template = 'edit_page.html'
+
+class ArticlesView(sqla.ModelView):
+    form_overrides = {
+        'body': CKTextAreaField
     }
     create_template = 'create_page.html'
     edit_template = 'edit_page.html'
@@ -215,7 +191,7 @@ class UserView(sqla.ModelView):
     """
     form_create_rules = [
         # Header and four fields. Email field will go above phone field.
-        rules.FieldSet(('first_name', 'last_name', 'email', 'phone'), 'Personal'),
+        rules.FieldSet(('first_name', 'last_name','username','password','email', 'phone'), 'Personal'),
         # Separate header and few fields
         rules.Header('Location'),
         rules.Field('city'),
@@ -288,16 +264,42 @@ def index():
 	database_path = os.path.join(ROOT_DIR, app.config['DATABASE_FILE'])
 	return "{}".format(database_path)
     #return '<a href="/admin/">Click me to get to Admin!</a>'
+'''
+@app.route('/files/<filename>')
+def uploaded_files(filename):
+    path = app.config['UPLOADED_PATH']
+    #print(path)
+    return send_from_directory(path, filename)
 
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    f = request.files.get('upload')
+    extension = f.filename.split('.')[1].lower()
+    if extension not in ['jpg', 'gif', 'png', 'jpeg']:
+        return upload_fail(message='Image only!')
+    f.save(os.path.join(app.config['UPLOADED_PATH'], f.filename))
+    #url = url_for('uploaded_files', filename=f.filename)
+    url = url_for('static', filename='files/'+f.filename)
+    return upload_success(url=url)
+'''
 # Create admin
 admin = Admin(app, 'Example: Forms', template_mode='bootstrap2')
 
 # Add views
+'''
 admin.add_view(FileView(File, db.session))
 admin.add_view(ImageView(Image, db.session))
 admin.add_view(UserView(User, db.session))
 admin.add_view(UserView1(User1, db.session))
 admin.add_view(PageView(Page, db.session))
+'''
+admin.add_view(FileView(database.File, db.session))
+admin.add_view(ImageView(database.Image, db.session))
+admin.add_view(UserView(database.Users, db.session))
+admin.add_view(ArticlesView(database.Articles, db.session))
+admin.add_view(UserView1(database.User1, db.session))
+admin.add_view(PageView(database.Page, db.session))
 #admin.add_view(rediscli.RedisCli(Redis()))
 
 
@@ -305,102 +307,13 @@ admin.add_view(PageView(Page, db.session))
 #def homepage():
 #	return render_template('admin/index.html')
 
-def build_sample_db():
-    """
-    Populate a small db with some example entries.
-    """
 
-    import random
-    import string
-
-    db.drop_all()
-    db.create_all()
-
-    first_names = [
-        'Harry', 'Amelia', 'Oliver', 'Jack', 'Isabella', 'Charlie','Sophie', 'Mia',
-        'Jacob', 'Thomas', 'Emily', 'Lily', 'Ava', 'Isla', 'Alfie', 'Olivia', 'Jessica',
-        'Riley', 'William', 'James', 'Geoffrey', 'Lisa', 'Benjamin', 'Stacey', 'Lucy'
-    ]
-    last_names = [
-        'Brown', 'Smith', 'Patel', 'Jones', 'Williams', 'Johnson', 'Taylor', 'Thomas',
-        'Roberts', 'Khan', 'Lewis', 'Jackson', 'Clarke', 'James', 'Phillips', 'Wilson',
-        'Ali', 'Mason', 'Mitchell', 'Rose', 'Davis', 'Davies', 'Rodriguez', 'Cox', 'Alexander'
-    ]
-    locations = [
-        ("Shanghai", "China"),
-        ("Istanbul", "Turkey"),
-        ("Karachi", "Pakistan"),
-        ("Mumbai", "India"),
-        ("Moscow", "Russia"),
-        ("Sao Paulo", "Brazil"),
-        ("Beijing", "China"),
-        ("Tianjin", "China"),
-        ("Guangzhou", "China"),
-        ("Delhi", "India"),
-        ("Seoul", "South Korea"),
-        ("Shenzhen", "China"),
-        ("Jakarta", "Indonesia"),
-        ("Tokyo", "Japan"),
-        ("Mexico City", "Mexico"),
-        ("Kinshasa", "Democratic Republic of the Congo"),
-        ("Bangalore", "India"),
-        ("New York City", "United States"),
-        ("London", "United Kingdom"),
-        ("Bangkok", "Thailand"),
-        ("Tehran", "Iran"),
-        ("Dongguan", "China"),
-        ("Lagos", "Nigeria"),
-        ("Lima", "Peru"),
-        ("Ho Chi Minh City", "Vietnam"),
-        ]
-
-    for i in range(len(first_names)):
-        user = User()
-        user.first_name = first_names[i]
-        user.last_name = last_names[i]
-        user.email = user.first_name.lower() + "@example.com"
-        tmp = ''.join(random.choice(string.digits) for i in range(10))
-        user.phone = "(" + tmp[0:3] + ") " + tmp[3:6] + " " + tmp[6::]
-        user.city = locations[i][0]
-        user.country = locations[i][1]
-        db.session.add(user)
-
-    for i in range(len(first_names)):
-        user1 = User1()
-        user1.first_name = first_names[i]
-        user1.last_name = last_names[i]
-        user1.email = user.first_name.lower() + "@example.com"
-        tmp = ''.join(random.choice(string.digits) for i in range(10))
-        user1.phone = "(" + tmp[0:3] + ") " + tmp[3:6] + " " + tmp[6::]
-        user1.city = locations[i][0]
-        user1.country = locations[i][1]
-        db.session.add(user1)
-
-    images = ["Buffalo", "Elephant", "Leopard", "Lion", "Rhino"]
-    for name in images:
-        image = Image()
-        image.name = name
-        image.path = name.lower() + ".jpg"
-        db.session.add(image)
-
-    for i in [1, 2, 3]:
-        file = File()
-        file.name = "Example " + str(i)
-        file.path = "example_" + str(i) + ".pdf"
-        db.session.add(file)
-
-    sample_text = "<h2>This is a test</h2>" + \
-    "<p>Create HTML content in a text area field with the help of <i>WTForms</i> and <i>CKEditor</i>.</p>"
-    db.session.add(Page(name="Test Page", text=sample_text))
-
-    db.session.commit()
-    return
 
 # Build a sample db on the fly, if one does not exist yet.
-database_path = os.path.join(ROOT_DIR, app.config['DATABASE_FILE'])
-if not os.path.exists(database_path):
-	build_sample_db()
-	print(database_path)
+#database_path = os.path.join(ROOT_DIR, app.config['DATABASE_FILE'])
+#if not os.path.exists(database_path):
+#	build_sample_db()
+#	print(database_path)
 #build_sample_db()
 if __name__ == '__main__':
 	pass

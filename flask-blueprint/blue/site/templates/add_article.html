@@ -12,4 +12,7 @@
     </div>
     <p><input class="btn btn-primary" type="submit" value="Submit">
   </form>
+  
+      {{ ckeditor.load() }}
+	{{ ckeditor.config(name='body') }}
 {% endblock %}

@@ -1,5 +1,9 @@
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from blue.site import database as db
+###SQLAlchemy
+
+
+
 ## Register Form Class
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
@@ -13,7 +17,7 @@ class RegisterForm(Form):
 # Article Form Class
 class ArticleForm(Form):
     title = StringField('Title', [validators.Length(min=1, max=200)])
-    body = TextAreaField('Body', [validators.Length(min=30)])
+    body = TextAreaField('Body', [validators.Length(min=0)])
 #Template Form class
 class TemplateForm(Form):
     name = StringField('Name')
@@ -100,7 +104,42 @@ class init_table():
             print('delete_error')
             return
 
-class Articles(init_table):
+    def test(self,view):
+        try:
+            #for i in [1, 2, 3]:
+            #    view = File()
+            #    view.name = "Example1 " + str(i)
+            #    print(view.name)
+            #    view.path = "example_" + str(i) + ".pdf"
+            #    db.db.session.add(view)
+            #view.id=1
+            #view.name='test'
+            #view.path='path_test'
+
+            #admin = User.query.filter_by(username='admin').first()
+            #admin.email = 'my_new_email@example.com'
+            #rows_changed = User.query.filter_by(role='admin').update(dict(permission='add_user'))
+            #Notice that filter_by takes keyword arguments (use only one =) as opposed to filter which takes an expression.
+
+            #user = view.query.get(1)
+            #user.name = 'New Name123'
+            #user = view.query.filter_by(id=3).first()
+            #db.db.session.delete(user)
+            #db.db.session.commit()
+
+            user = db.Articles_new()
+            #self.id, self.title,self.body,self.author = cursor
+            user.title='test'
+            user.body ='test'
+            user.author ='test'
+            db.db.session.add(user)
+            db.db.session.commit()
+            return 'Done'#cls(cursor,list=True)
+        except:
+            print('test_error')
+            return 'Error'
+
+class Articles_old(init_table):
     table='articles_v'
     select='id,title,body,author'
     def __init__(self,cursor=None,list=False):
