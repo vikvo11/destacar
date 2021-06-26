@@ -6,6 +6,7 @@ from blue import app
 from flask import g
 #from flask import request,url_for
 import sqlite3
+#from flask_mysqldb import MySQL #For connect to MySQL DB
 from passlib.hash import sha256_crypt
 import os
 
@@ -21,7 +22,19 @@ app.config['DATABASE_FILE'] = 'db.sqlite'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
 app.config['SQLALCHEMY_ECHO'] = True
 ####
+
 db = SQLAlchemy(app)
+####
+
+#Config mysql
+#app.config['MYSQL_HOST']='Ladymarlene.mysql.pythonanywhere-services.com'
+#app.config['MYSQL_USER']='Ladymarlene'
+#app.config['MYSQL_PASSWORD']='cb.,fq12-'
+#app.config['MYSQL_DB']='Ladymarlene$bot'
+#app.config['MYSQL_CURSORCLASS']='DictCursor'
+#init MySQL
+#dbm=MySQL(app)
+
 '''
 def upd_db():
 	for i in [1, 2, 3]:
@@ -67,6 +80,7 @@ class Articles(db.Model):
 	title=  db.Column(db.Unicode(64))
 	body =  db.Column(db.UnicodeText)
 	author = db.Column(db.Unicode(64))
+	date = db.Column(db.Unicode(64))
 	def add(self,title,body,author):
 		try:
 			self.title=title
